@@ -62,7 +62,7 @@
       min-height: 100vh;
       -webkit-font-smoothing: antialiased;
     }
-    .container { width: 100%; max-width: 640px; padding-bottom: 40px; }
+    .container { width: 100%; max-width: 640px; padding-bottom: calc(140px + env(safe-area-inset-bottom)); }
     
     .theme-switcher {
       display: flex;
@@ -220,12 +220,12 @@
         box-shadow: none;
         background: transparent;
         padding: 0;
-        margin-bottom: 80px; /* 留位給底部按鈕 */
+        margin-bottom: 24px;
     }
 
     /* 2. 輸入框優化：更緊湊、更好按 */
     fieldset {
-        background: #fff;
+        background: var(--surface-color);
         border: none;
         border-radius: 16px;
         padding: 20px;
@@ -239,47 +239,49 @@
     .form-group label {
         font-size: 0.75rem;
         margin-bottom: 4px;
-        color: #64748b;
+        color: var(--muted-text-color);
     }
 
     input, select {
-        background: #f1f5f9; /* 淺灰底色，更有質感 */
+        background: color-mix(in srgb, var(--surface-color) 70%, var(--bg-color));
         border: none;
         padding: 14px; /* 加大點擊範圍 */
         font-size: 1.1rem; /* 字體加大 */
         font-weight: 600;
         border-radius: 12px;
     }
-    input:focus { background: #fff; box-shadow: 0 0 0 2px var(--primary-color); }
+    input:focus, select:focus { background: var(--surface-color); box-shadow: 0 0 0 2px var(--primary-color); }
 
     /* 3. 結果區：改為醒目卡片 */
     .result-box {
-        background: #1e293b; /* 深色底 */
-        color: #fff;
+        background: var(--surface-color);
+        background: color-mix(in srgb, var(--surface-color) 88%, var(--bg-color));
+        color: var(--text-color);
         border: none;
         padding: 20px;
         border-radius: 16px;
         margin: 16px 0;
         box-shadow: 0 10px 30px rgba(0,0,0,0.15);
     }
-    .result-item { border-bottom: 1px solid rgba(255,255,255,0.1); }
-    .result-value { color: #4ade80; font-size: 1.3rem; } /* 亮綠色數字 */
-
+    .result-item { border-bottom: 1px solid var(--border-color); }
+    .result-value { color: var(--success-text); font-size: 1.3rem; }
     /* 4. 底部懸浮按鈕 (Sticky Bottom) */
     .button-group {
         position: fixed;
-        bottom: 20px;
-        left: 16px;
-        right: 16px;
+        bottom: calc(12px + env(safe-area-inset-bottom));
+        left: 12px;
+        right: 12px;
         z-index: 100;
-        background: rgba(255,255,255,0.9);
+        background: color-mix(in srgb, var(--surface-color) 88%, transparent);
         backdrop-filter: blur(10px);
-        padding: 10px;
+        padding: 12px;
         border-radius: 20px;
         box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        border: 1px solid var(--border-color);
         display: flex;
         gap: 8px;
     }
+
     /* 把次要按鈕隱藏或縮小，強調主要按鈕 */
     .btn {
         border-radius: 14px;
@@ -287,8 +289,8 @@
         font-size: 1.1rem;
         letter-spacing: 0.5px;
     }
-    /* 讓「加入/計算」按鈕變大 */
-    button[type="submit"], #btn-add-next {
+    /* 讓「計算」按鈕變大 */
+    button[type="submit"] {
         flex: 2; /* 佔據更多寬度 */
         background: linear-gradient(135deg, #2563eb, #1d4ed8);
         box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
@@ -300,7 +302,7 @@
     }
     thead { display: none; } /* 隱藏表頭 */
     tr {
-        background: #fff;
+        background: var(--surface-color);
         border-radius: 12px;
         margin-bottom: 12px;
         padding: 16px;
@@ -319,8 +321,8 @@
     /* 月供金額 */
     td:nth-of-type(2) { grid-column: 2; text-align: right; font-size: 1.2rem; color: var(--primary-color); font-weight: 800; }
     /* 結欠 & 其他資訊 (隱藏不需要的欄位或縮小顯示) */
-    td:nth-of-type(3)::before { content: "結欠: "; color: #94a3b8; font-size: 0.8rem; }
-    td:nth-of-type(3) { grid-column: 1; font-size: 0.9rem; color: #64748b; }
+    td:nth-of-type(3)::before { content: "結欠: "; color: var(--muted-text-color); font-size: 0.8rem; }
+    td:nth-of-type(3) { grid-column: 1; font-size: 0.9rem; color: var(--muted-text-color); }
 
     /* 隱藏期數和利率，除非點擊展開 (簡化介面) */
     td:nth-of-type(4), td:nth-of-type(5) { display: none; } 
@@ -520,7 +522,7 @@
               </div>
           </div>
           <!-- 進度條視覺化 -->
-          <div style="height: 8px; background: #e2e8f0; border-radius: 4px; margin-top: 8px; overflow: hidden;">
+          <div style="height: 8px; background: var(--border-color); background: color-mix(in srgb, var(--border-color) 85%, transparent); border-radius: 4px; margin-top: 8px; overflow: hidden;">
               <div id="dsr-bar" style="height: 100%; width: 0%; background: #22c55e; transition: width 0.3s, background-color 0.3s;"></div>
           </div>
       </div>
@@ -701,7 +703,7 @@
             <tr>
                 <td>
                     <div style="font-weight:600;">${item.bankName || '未命名'}</div>
-                    <div style="font-size:0.8rem; color:#64748b;">
+                    <div style="font-size:0.8rem; color:var(--muted-text-color);">
                         ${item.payDate ? `(${item.payDate}號)` : ''} 
                         <span class="badge ${typeMap[item.loanType]}">${getTypeName(item.loanType)}</span>
                     </div>
@@ -723,10 +725,8 @@
         this.els.totalPmt.textContent = money(sumPmt);
         this.els.totalBalance.textContent = money(sumBal);
         
-        this.els.summarySec.scrollIntoView({ behavior: 'smooth' });
-
-        // 👇 加入這行：每當表格刷新 (新增/刪除貸款) 時，通知 controller 重算 DSR
-        if (controller && controller.updateDSR) {
+        // 👇 每當表格刷新 (新增/刪除貸款) 時，通知 controller 重算 DSR
+        if (typeof controller !== 'undefined' && controller && typeof controller.updateDSR === 'function') {
             controller.updateDSR();
         }
     },
@@ -743,6 +743,7 @@
   const controller = {
     lastResult: null,
     hasCalculatedOnce: false,
+    lastMode: 'quick',
 
     init() {
         view.els.themeToggle.addEventListener('click', () => {
@@ -945,18 +946,60 @@
 
         let isListening = false;
         let finalTranscript = '';
+        let lastPointerTime = 0;
+        const pointerClickDelay = 700;
 
-        // 按鈕點擊事件 (開關邏輯)
+        const safeStart = () => {
+            finalTranscript = '';
+            try {
+                recognition.start();
+            } catch (err) {
+                // Ignore invalid state errors from rapid taps.
+            }
+        };
+
+        const safeStop = () => {
+            try {
+                recognition.stop();
+            } catch (err) {
+                // Ignore invalid state errors from rapid taps.
+            }
+        };
+
+        // 按鈕點擊事件 (桌面開關邏輯)
         view.els.voiceBtn.addEventListener('click', () => {
+            if (Date.now() - lastPointerTime < pointerClickDelay) return;
             if (isListening) {
                 // 🛑 如果正在聽，就停止
-                recognition.stop(); 
+                safeStop();
             } else {
                 // ▶️ 如果沒在聽，就開始
-                finalTranscript = ''; // 清空上次紀錄
-                recognition.start();
+                safeStart();
             }
         });
+        // Pointer press-and-hold (mobile ergonomics)
+        const isTouchPointer = (event) => event.pointerType && event.pointerType !== 'mouse';
+
+        view.els.voiceBtn.addEventListener("pointerdown", (event) => {
+            if (!isTouchPointer(event)) return;
+            event.preventDefault();
+            lastPointerTime = Date.now();
+            if (!isListening) safeStart();
+        }, { passive: false });
+
+        view.els.voiceBtn.addEventListener("pointerup", (event) => {
+            if (!isTouchPointer(event)) return;
+            event.preventDefault();
+            lastPointerTime = Date.now();
+            safeStop();
+        }, { passive: false });
+
+        view.els.voiceBtn.addEventListener("pointercancel", (event) => {
+            if (!isTouchPointer(event)) return;
+            event.preventDefault();
+            lastPointerTime = Date.now();
+            safeStop();
+        }, { passive: false });
 
         // 開始聆聽時
         recognition.onstart = () => {
@@ -1104,6 +1147,9 @@
     },
 
     switchMode(mode) {
+        const prevMode = this.lastMode;
+        this.lastMode = mode;
+
         if (mode === 'quick') {
             view.els.tabQuick.classList.add('active');
             view.els.tabSheet.classList.remove('active');
@@ -1114,6 +1160,16 @@
             view.els.tabQuick.classList.remove('active');
             view.els.sheetFields.style.display = 'block';
             view.els.btnNext.style.display = 'block';
+
+            this.updateDSR();
+            // 只有非輸入中才自動捲到匯總
+            const summaryVisible = view.els.summarySec && view.els.summarySec.style.display !== 'none';
+            const activeEl = document.activeElement;
+            const isSheetEditing = activeEl && view.els.sheetFields.contains(activeEl) &&
+                ['INPUT', 'SELECT', 'TEXTAREA'].includes(activeEl.tagName);
+            if (prevMode !== 'sheet' && summaryVisible && !isSheetEditing) {
+                view.els.summarySec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
         }
     },
 
