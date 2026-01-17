@@ -261,11 +261,38 @@
                 </div>
                 <div class="form-group">
                     <label for="loan_type">債務種類</label>
-                    <select id="loan_type">
+                    <select id="loan_type" onchange="document.getElementById('min-pay-group').style.display = this.value === 'CARD' ? 'block' : 'none'">
                         <option value="LOAN">私人貸款 (Loan)</option>
                         <option value="CARD">信用卡 (Card)</option>
                         <option value="OD">透支 (OD)</option>
                     </select>
+                </div>
+
+                <!-- ✨ 新增：Min Pay 計算區塊 (預設隱藏，選 Card 時才顯示) -->
+                <div id="min-pay-group" style="display: none; background: color-mix(in srgb, var(--primary-color) 5%, transparent); padding: 10px; border-radius: 8px; grid-column: 1 / -1; border: 1px dashed var(--primary-color);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <label style="margin:0; color: var(--primary-color);">💳 信用卡 Min Pay 估算</label>
+                        <small style="color: var(--muted-text-color);">通用公式: 息+費+1%本金</small>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <!-- 讓她輸入現時結欠 -->
+                        <div class="form-group">
+                            <label for="card_balance">當前結欠 (Statement Balance)</label>
+                            <input type="number" id="card_balance" placeholder="$" inputmode="numeric">
+                        </div>
+                        <!-- 讓她輸入年利率 (信用卡通常是 30%~36%) -->
+                        <div class="form-group">
+                            <label for="card_rate">年息 (APR%)</label>
+                            <input type="number" id="card_rate" value="35" placeholder="%">
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 10px; text-align: right;">
+                        <span style="font-size: 0.9rem;">估算 Min Pay: </span>
+                        <span id="calc-min-pay" style="font-size: 1.2rem; font-weight: bold; color: var(--error-text);">HK$0</span>
+                    </div>
+                    <button type="button" id="btn-apply-minpay" class="btn secondary" style="width:100%; margin-top:8px; padding: 6px; font-size: 0.9rem;">⬇️ 套用此數值為「每月還款額」</button>
                 </div>
             </div>
         </div>
@@ -620,6 +647,56 @@
             view.renderTable(model.state.loanList);
             this.switchMode('sheet');
         }
+
+        // --- Min Pay 計算邏輯 ---
+        const elCardBal = document.getElementById('card_balance');
+        const elCardRate = document.getElementById('card_rate');
+        const elMinPayVal = document.getElementById('calc-min-pay');
+        const btnApply = document.getElementById('btn-apply-minpay');
+
+        const calcMinPay = () => {
+            const bal = parseFloat(elCardBal.value) || 0;
+            const rate = parseFloat(elCardRate.value) || 35; // 預設 35%
+            
+            if (bal === 0) {
+                elMinPayVal.textContent = 'HK$0';
+                return 0;
+            }
+
+            // 通用公式：利息 + 1% 本金
+            // 利息 = 結欠 * (年息/12)
+            const monthlyInterest = bal * (rate / 100 / 12);
+            const principalPortion = bal * 0.01; 
+            
+            // 加上可能的手續費 (這裡簡化，假設為 0)
+            let minPay = monthlyInterest + principalPortion;
+
+            // 銀行通常有最低收費 (例如 $50 或 $200)
+            if (minPay < 200) minPay = 200;
+            if (minPay > bal) minPay = bal; // 不可能還多過結欠
+
+            // 四捨五入到整數
+            minPay = Math.round(minPay);
+
+            elMinPayVal.textContent = new Intl.NumberFormat('zh-HK', { style: 'currency', currency: 'HKD', maximumFractionDigits:0 }).format(minPay);
+            return minPay;
+        };
+
+        // 監聽輸入變動
+        elCardBal.addEventListener('input', calcMinPay);
+        elCardRate.addEventListener('input', calcMinPay);
+
+        // 套用按鈕：把算出來的 Min Pay 填進原本的「每月還款額」欄位
+        btnApply.addEventListener('click', () => {
+            const val = calcMinPay();
+            if (val > 0) {
+                view.els.inputs.pmt.value = val;
+                view.els.inputs.p.value = elCardBal.value; // 本金也順便填進去
+                view.msg('success', `已套用 Min Pay: $${val}`);
+                // 觸發一下本金欄位的 input 事件，讓如果有自動計算邏輯的話能跑起來
+                view.els.inputs.p.dispatchEvent(new Event('input'));
+            }
+        });
     },
 
     setupVoice() {
