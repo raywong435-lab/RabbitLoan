@@ -187,11 +187,16 @@
     .result-value.important { color: var(--error-text); }
 
     /* 表格樣式 (v3) */
-    .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; margin-top: 10px; }
-    table { width: 100%; border-collapse: collapse; min-width: 500px; font-size: 0.9rem; }
+    .table-responsive { width: 100%; margin-top: 10px; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
     th, td { padding: 12px 8px; text-align: left; border-bottom: 1px solid var(--border-color); }
     th { font-weight: 600; color: var(--muted-text-color); background-color: var(--bg-color); white-space: nowrap; }
     tfoot td { font-weight: bold; border-top: 2px solid var(--border-color); background-color: var(--surface-color); }
+
+    @media (min-width: 521px) {
+      .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      table { min-width: 500px; }
+    }
     
     /* 彩色標籤 (Badge) */
     .badge {
@@ -297,42 +302,68 @@
     }
 
     /* 5. 表格改為卡片清單 (Mobile List View) */
-    table, thead, tbody, th, td, tr { 
-        display: block; 
-    }
-    thead { display: none; } /* 隱藏表頭 */
-    tr {
-        background: var(--surface-color);
-        border-radius: 12px;
-        margin-bottom: 12px;
-        padding: 16px;
-        position: relative;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.02);
-        display: grid;
-        grid-template-columns: 1fr auto; /* 左邊資訊，右邊金額 */
-        align-items: center;
-    }
-    td {
-        border: none;
-        padding: 4px 0;
-    }
-    /* 銀行名稱 & 類型 */
-    td:nth-of-type(1) { grid-column: 1; font-size: 1.1rem; font-weight: bold; }
-    /* 月供金額 */
-    td:nth-of-type(2) { grid-column: 2; text-align: right; font-size: 1.2rem; color: var(--primary-color); font-weight: 800; }
-    /* 結欠 & 其他資訊 (隱藏不需要的欄位或縮小顯示) */
-    td:nth-of-type(3)::before { content: "結欠: "; color: var(--muted-text-color); font-size: 0.8rem; }
-    td:nth-of-type(3) { grid-column: 1; font-size: 0.9rem; color: var(--muted-text-color); }
+    @media (max-width: 520px) {
+        .table-responsive { overflow-x: visible; }
+        table { min-width: 0; width: 100%; }
+        table, thead, tbody, th, td, tr { 
+            display: block; 
+        }
+        thead { display: none; } /* 隱藏表頭 */
+        tr {
+            width: 100%;
+            box-sizing: border-box;
+            background: var(--surface-color);
+            border-radius: 12px;
+            margin-bottom: 8px;
+            padding: 12px;
+            position: relative;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+            display: grid;
+            grid-template-columns: 1fr auto; /* 左邊資訊，右邊金額 */
+            align-items: center;
+        }
+        td {
+            border: none;
+            padding: 3px 0;
+        }
+        /* 銀行名稱 & 類型 */
+        td:nth-of-type(1) { grid-column: 1; font-size: 1.05rem; font-weight: bold; }
+        /* 月供金額 */
+        td:nth-of-type(2) {
+            grid-column: 2;
+            text-align: right;
+            justify-self: end;
+            white-space: nowrap;
+            font-size: 1.15rem;
+            color: var(--primary-color);
+            font-weight: 800;
+        }
+        /* 結欠 & 其他資訊 (隱藏不需要的欄位或縮小顯示) */
+        td:nth-of-type(3)::before { content: "結欠: "; color: var(--muted-text-color); font-size: 0.8rem; }
+        td:nth-of-type(3) { grid-column: 1; font-size: 0.9rem; color: var(--muted-text-color); }
 
-    /* 隱藏期數和利率，除非點擊展開 (簡化介面) */
-    td:nth-of-type(4), td:nth-of-type(5) { display: none; } 
+        /* 隱藏期數和利率，除非點擊展開 (簡化介面) */
+        td:nth-of-type(4), td:nth-of-type(5) { display: none; } 
 
-    /* 刪除按鈕 */
-    td:last-child {
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        opacity: 0.3;
+        /* 刪除按鈕 */
+        td:last-child {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            opacity: 0.3;
+        }
+    }
+
+    .result-actions {
+        margin-top: 12px;
+        display: none;
+        gap: 10px;
+    }
+    .result-actions .btn {
+        width: 100%;
+        min-width: 0;
+        padding: 12px;
+        font-size: 0.95rem;
     }
   </style>
 </head>
@@ -447,7 +478,6 @@
       <div class="button-group">
         <button class="btn" type="submit">✨ 立即計算</button>
         <button class="btn secondary" type="reset">重設</button>
-        <button class="btn success" type="button" id="btn-add-list" disabled>⬇️ 加入報表</button>
         <!-- 新增：快速儲存按鈕 -->
         <button class="btn" type="button" id="btn-add-next" style="background-color: #7c3aed;">➕ 儲存並下一筆</button>
       </div>
@@ -478,6 +508,9 @@
         <span class="result-value" id="res_remain_interest"></span>
       </div>
     </section>
+    <div class="result-actions">
+      <button class="btn secondary" type="button" id="btn-add-list" disabled>⬇️ 加入報表</button>
+    </div>
   </main>
 
   <!-- 財務狀況匯總表格 -->
@@ -634,7 +667,10 @@
         },
         btnAdd: document.getElementById('btn-add-list'),
         btnNext: document.getElementById('btn-add-next'),
+        submitBtn: document.querySelector('#loan-form button[type="submit"]'),
+        resetBtn: document.querySelector('#loan-form button[type="reset"]'),
         resultArea: document.getElementById('result-area'),
+        resultActions: document.querySelector('.result-actions'),
         msgBox: document.getElementById('message-box'),
         // Results
         resEar: document.getElementById('res_ear'),
@@ -680,6 +716,7 @@
         this.els.resRemainInt.textContent = money(data.remainInterest);
         
         this.els.resultArea.style.display = 'block';
+        if (this.els.resultActions) this.els.resultActions.style.display = 'flex';
     },
 
     renderTable(list) {
@@ -760,6 +797,7 @@
         view.els.form.addEventListener('submit', e => this.handleSubmit(e));
         view.els.form.addEventListener('reset', () => {
             view.els.resultArea.style.display = 'none';
+            if (view.els.resultActions) view.els.resultActions.style.display = 'none';
             view.els.btnAdd.disabled = true;
             view.els.msgBox.style.display = 'none';
             this.hasCalculatedOnce = false;
@@ -927,6 +965,7 @@
         // 4. 重置表單
         view.els.form.reset();
         view.els.resultArea.style.display = 'none';
+        if (view.els.resultActions) view.els.resultActions.style.display = 'none';
         
         view.msg('success', '已重設所有資料');
     },
@@ -1155,11 +1194,15 @@
             view.els.tabSheet.classList.remove('active');
             view.els.sheetFields.style.display = 'none';
             view.els.btnNext.style.display = 'none'; // Quick mode hide next btn
+            if (view.els.submitBtn) view.els.submitBtn.style.display = '';
+            if (view.els.resetBtn) view.els.resetBtn.style.display = '';
         } else {
             view.els.tabSheet.classList.add('active');
             view.els.tabQuick.classList.remove('active');
             view.els.sheetFields.style.display = 'block';
-            view.els.btnNext.style.display = 'block';
+            view.els.btnNext.style.display = '';
+            if (view.els.submitBtn) view.els.submitBtn.style.display = 'none';
+            if (view.els.resetBtn) view.els.resetBtn.style.display = '';
 
             this.updateDSR();
             // 只有非輸入中才自動捲到匯總
@@ -1203,6 +1246,7 @@
         view.els.btnAdd.disabled = true;
         view.els.form.reset();
         view.els.resultArea.style.display = 'none';
+        if (view.els.resultActions) view.els.resultActions.style.display = 'none';
         view.msg('success', '已加入清單');
         this.switchMode('sheet');
     },
@@ -1239,6 +1283,7 @@
         
         // 5. Reset states
         view.els.resultArea.style.display = 'none';
+        if (view.els.resultActions) view.els.resultActions.style.display = 'none';
         view.els.btnAdd.disabled = true;
         this.hasCalculatedOnce = false;
         
