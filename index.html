@@ -1,0 +1,914 @@
+﻿﻿<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>優化版：AI 貸款智能推算助手 v4</title>
+  <style>
+    /* --- 1. CSS 變數與主題化設計 --- */
+    :root {
+      --primary-color: #2563eb;
+      --primary-hover: #1d4ed8;
+      --bg-color: #f8fafc;
+      --surface-color: #ffffff;
+      --text-color: #0f172a;
+      --muted-text-color: #64748b;
+      --border-color: #e2e8f0;
+      --focus-ring-color: rgba(37, 99, 235, 0.2);
+      --success-bg: #f0fdf4;
+      --success-border: #bbf7d0;
+      --success-text: #15803d;
+      --error-bg: #fef2f2;
+      --error-border: #fecaca;
+      --error-text: #b91c1c;
+      --warning-bg: #fffbeb;
+      --warning-border: #fed7aa;
+      --warning-text: #b45309;
+      --border-radius: 12px;
+      --shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    [data-theme='dark'] {
+      --primary-color: #3b82f6;
+      --primary-hover: #60a5fa;
+      --bg-color: #0f172a;
+      --surface-color: #1e293b;
+      --text-color: #f1f5f9;
+      --muted-text-color: #94a3b8;
+      --border-color: #334155;
+      --focus-ring-color: rgba(59, 130, 246, 0.3);
+      --success-bg: #162a22;
+      --success-border: #204d3a;
+      --success-text: #6ee7b7;
+      --error-bg: #2d1a1a;
+      --error-border: #5c2222;
+      --error-text: #fca5a5;
+      --warning-bg: #2a2216;
+      --warning-border: #5a3b12;
+      --warning-text: #fdba74;
+    }
+
+    /* --- 2. 基礎與佈局樣式 --- */
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      font-family: var(--font-family);
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      margin: 0;
+      padding: 16px;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+    .container { width: 100%; max-width: 640px; padding-bottom: 40px; }
+    
+    .theme-switcher {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 12px;
+    }
+    
+    .card {
+      background-color: var(--surface-color);
+      padding: 24px;
+      border-radius: var(--border-radius);
+      border: 1px solid var(--border-color);
+      box-shadow: var(--shadow);
+      margin-bottom: 24px;
+    }
+
+    h1 {
+      margin: 0 0 8px 0;
+      font-size: 1.4rem;
+      border-left: 5px solid var(--primary-color);
+      padding-left: 12px;
+      line-height: 1.2;
+    }
+    h2 { font-size: 1.2rem; margin: 0 0 16px 0; }
+    .subtitle { margin: 0 0 20px 0; color: var(--muted-text-color); font-size: 0.9rem; line-height: 1.4; }
+
+    /* --- 3. 表單元素 --- */
+    #loan-form { display: flex; flex-direction: column; gap: 20px; }
+    fieldset {
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius);
+      padding: 16px;
+      margin: 0;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    legend { padding: 0 8px; font-weight: 600; color: var(--muted-text-color); font-size: 0.9rem; }
+    
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .full-width { grid-column: 1 / -1; }
+    label { font-size: 0.85rem; font-weight: 600; color: var(--muted-text-color); }
+    
+    input, select {
+      padding: 12px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      font-size: 1rem; /* 16px to prevent iOS zoom */
+      outline: none;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      width: 100%;
+      transition: border-color 0.2s;
+    }
+    
+    input:focus, select:focus { border-color: var(--primary-color); }
+    input.is-invalid { border-color: var(--error-text); }
+    
+    /* 模式切換 Tabs */
+    .mode-tabs {
+        display: flex;
+        background-color: var(--border-color);
+        padding: 4px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+    }
+    .tab-btn {
+        flex: 1;
+        padding: 10px;
+        border: none;
+        background: transparent;
+        color: var(--muted-text-color);
+        font-weight: 600;
+        font-size: 0.95rem;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .tab-btn.active {
+        background-color: var(--surface-color);
+        color: var(--primary-color);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    /* 按鈕樣式 */
+    .button-group { display: flex; gap: 10px; flex-wrap: wrap; }
+    .btn {
+      padding: 14px;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      flex: 1;
+      min-width: 140px;
+      color: white;
+      background-color: var(--primary-color);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .btn:active { opacity: 0.8; transform: scale(0.98); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    
+    .btn.secondary { background-color: transparent; border: 1px solid var(--border-color); color: var(--text-color); }
+    .btn.success { background-color: var(--success-text); }
+    .btn.voice-btn { background-color: #ef4444; margin-bottom: 10px; width: 100%; } /* 紅色錄音按鈕 */
+
+    /* 結果區塊 */
+    .result-box {
+      margin-top: 24px;
+      padding: 16px;
+      background-color: color-mix(in srgb, var(--primary-color) 8%, transparent);
+      border-radius: var(--border-radius);
+      border: 1px solid color-mix(in srgb, var(--primary-color) 20%, transparent);
+      display: none; 
+    }
+    .result-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 12px 0; border-bottom: 1px solid var(--border-color); font-size: 0.95rem;
+    }
+    .result-item:last-child { border-bottom: none; }
+    .result-value { font-weight: 700; color: var(--primary-color); font-size: 1.1rem; }
+    .result-value.important { color: var(--error-text); }
+
+    /* 表格樣式 (v3) */
+    .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; margin-top: 10px; }
+    table { width: 100%; border-collapse: collapse; min-width: 500px; font-size: 0.9rem; }
+    th, td { padding: 12px 8px; text-align: left; border-bottom: 1px solid var(--border-color); }
+    th { font-weight: 600; color: var(--muted-text-color); background-color: var(--bg-color); white-space: nowrap; }
+    tfoot td { font-weight: bold; border-top: 2px solid var(--border-color); background-color: var(--surface-color); }
+    
+    /* 彩色標籤 (Badge) */
+    .badge {
+        display: inline-block; padding: 4px 8px; border-radius: 6px;
+        font-size: 0.75rem; font-weight: 700; color: white; letter-spacing: 0.5px;
+    }
+    .badge-loan { background-color: #3b82f6; } /* Blue */
+    .badge-card { background-color: #f97316; } /* Orange */
+    .badge-od { background-color: #ef4444; }   /* Red */
+
+    /* 訊息框 */
+    .message-box {
+      margin-top: 16px; padding: 12px; border-radius: 8px; font-size: 0.9rem;
+      display: none; white-space: pre-line;
+    }
+    .message-box.success { background: var(--success-bg); color: var(--success-text); border: 1px solid var(--success-border); }
+    .message-box.error { background: var(--error-bg); color: var(--error-text); border: 1px solid var(--error-border); }
+    .message-box.warning { background: var(--warning-bg); color: var(--warning-text); border: 1px solid var(--warning-border); }
+    .error-message { font-size: 0.8rem; color: var(--error-text); display: none; margin-top: 4px; }
+
+    /* 手機版優化 */
+    @media (max-width: 600px) {
+      fieldset { grid-template-columns: 1fr; }
+      .btn { width: 100%; }
+      .container { padding: 10px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <header class="theme-switcher">
+    <button type="button" id="theme-toggle" class="btn secondary" style="min-width: auto; padding: 6px 12px; font-size: 0.85rem;">🌗 切換主題</button>
+  </header>
+
+  <main class="card">
+    <header>
+      <h1>🏦 貸款智能助手 v4</h1>
+      <p class="subtitle">支援語音輸入、連續快速輸入與自動計算。</p>
+    </header>
+
+    <!-- 模式切換 -->
+    <div class="mode-tabs">
+        <button type="button" class="tab-btn active" id="tab-quick">⚡ 快速計算</button>
+        <button type="button" class="tab-btn" id="tab-sheet">📋 財務報表</button>
+    </div>
+
+    <!-- 語音按鈕 -->
+    <button id="btn-voice-input" class="btn voice-btn" type="button">🎙️ 語音輸入 (試試：渣打借五萬分24期供二千五)</button>
+
+    <form id="loan-form" novalidate>
+      <fieldset>
+        <legend>主要參數</legend>
+
+        <!-- 表單模式欄位 -->
+        <div id="sheet-fields" style="display: none;" class="full-width">
+            <div style="display: grid; gap: 16px; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px dashed var(--border-color);">
+                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px;">
+                    <div class="form-group">
+                        <label for="bank_name">銀行/財務名稱</label>
+                        <input type="text" id="bank_name" placeholder="例如：匯豐" autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label for="pay_date">供款日 (號)</label>
+                        <input type="number" id="pay_date" placeholder="1-31" min="1" max="31" inputmode="numeric">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="loan_type">債務種類</label>
+                    <select id="loan_type">
+                        <option value="LOAN">私人貸款 (Loan)</option>
+                        <option value="CARD">信用卡 (Card)</option>
+                        <option value="OD">透支 (OD)</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group">
+          <label for="p">貸款金額 (本金)</label>
+          <input type="number" id="p" placeholder="$" min="1" step="1" inputmode="numeric" required>
+          <div class="error-message" id="p-error"></div>
+        </div>
+        <div class="form-group">
+          <label for="pmt">每月還款額</label>
+          <input type="number" id="pmt" placeholder="$" min="1" step="1" inputmode="numeric" required>
+          <div class="error-message" id="pmt-error"></div>
+        </div>
+        <div class="form-group">
+          <label for="n">總期數 (月)</label>
+          <input type="number" id="n" placeholder="月" min="1" step="1" inputmode="numeric" required>
+          <div class="error-message" id="n-error"></div>
+        </div>
+        <div class="form-group">
+          <label for="repaid_n">已還 (月) (選填)</label>
+          <input type="number" id="repaid_n" value="0" min="0" step="1" inputmode="numeric">
+          <div class="error-message" id="repaid_n-error"></div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>選填參數</legend>
+        <div class="form-group full-width">
+          <label for="rate">已知年利率 (%) (不填則反推)</label>
+          <input type="number" id="rate" placeholder="%" min="0" step="0.01" inputmode="decimal">
+          <div class="error-message" id="rate-error"></div>
+        </div>
+      </fieldset>
+
+      <div class="button-group">
+        <button class="btn" type="submit">✨ 立即計算</button>
+        <button class="btn secondary" type="reset">重設</button>
+        <button class="btn success" type="button" id="btn-add-list" disabled>⬇️ 加入報表</button>
+        <!-- 新增：快速儲存按鈕 -->
+        <button class="btn" type="button" id="btn-add-next" style="background-color: #7c3aed;">➕ 儲存並下一筆</button>
+      </div>
+    </form>
+
+    <div id="message-box" class="message-box" role="alert"></div>
+
+    <!-- 結果區 -->
+    <section id="result-area" class="result-box">
+      <div class="result-item">
+        <span>實際年利率</span>
+        <span class="result-value important" id="res_ear"></span>
+      </div>
+      <div class="result-item">
+        <span>剩餘期數</span>
+        <span class="result-value" id="res_remain_n"></span>
+      </div>
+      <div class="result-item">
+        <span>結欠本金</span>
+        <span class="result-value" id="res_balance"></span>
+      </div>
+      <div class="result-item">
+        <span>總結欠 (剩餘月供)</span>
+        <span class="result-value" id="res_total_debt"></span>
+      </div>
+      <div class="result-item">
+        <span>剩餘利息</span>
+        <span class="result-value" id="res_remain_interest"></span>
+      </div>
+    </section>
+  </main>
+
+  <!-- 財務狀況匯總表格 -->
+  <section id="finance-summary" class="card" style="display:none;">
+      <h2>📋 財務狀況匯總</h2>
+      <div class="table-responsive">
+          <table>
+              <thead>
+                  <tr>
+                      <th>銀行 (種類)</th>
+                      <th>月供</th>
+                      <th>結欠本金</th>
+                      <th>期數</th>
+                      <th>利率</th>
+                      <th>操作</th>
+                  </tr>
+              </thead>
+              <tbody id="loan-list-body">
+                  <!-- JS Render -->
+              </tbody>
+              <tfoot>
+                  <tr>
+                      <td>總計</td>
+                      <td id="total-pmt">$0</td>
+                      <td id="total-balance">$0</td>
+                      <td colspan="3"></td>
+                  </tr>
+              </tfoot>
+          </table>
+      </div>
+      
+      <div class="action-buttons" style="margin-top: 20px;">
+        <button id="btn-copy-text" class="btn secondary" style="width: 100%;">📄 複製文字報表 (WhatsApp)</button>
+      </div>
+  </section>
+
+</div>
+
+<script type="module">
+  // --- Model ---
+  const model = {
+    state: {
+      // 初始化時嘗試讀取舊資料
+      loanList: JSON.parse(localStorage.getItem('myLoanList')) || []
+    },
+    
+    // 金融計算核心 (二分法)
+    solveRate(P, PMT, N) {
+      if (PMT <= P/N) return 0;
+      const pay = r => (r === 0) ? P/N : (P*r) / (1 - Math.pow(1+r, -N));
+      let low = 0, high = 1; 
+      // 快速逼近
+      for(let i=0; i<60; i++) {
+          let mid = (low+high)/2;
+          let p = pay(mid);
+          if (p < PMT) low = mid; else high = mid;
+      }
+      return low;
+    },
+
+    calculate(inputs) {
+      const { P, PMT, N, K, annualRate } = inputs;
+      const kSafe = K || 0;
+      if (kSafe > N) return { error: '已還期數不可大於總期數' };
+
+      let monthlyRate;
+      let usedInputRate = false;
+      let warning = null;
+
+      if (annualRate !== null) {
+          monthlyRate = annualRate / 100 / 12;
+          usedInputRate = true;
+      } else {
+          monthlyRate = this.solveRate(P, PMT, N);
+          if (!isFinite(monthlyRate)) return { error: '無法計算：請檢查輸入數值' };
+      }
+
+      const remainN = N - kSafe;
+      // 結欠本金公式
+      const balance = (monthlyRate === 0) 
+        ? PMT * remainN 
+        : PMT * (1 - Math.pow(1+monthlyRate, -remainN)) / monthlyRate;
+
+      const ear = Math.pow(1+monthlyRate, 12) - 1;
+
+      return {
+          success: true,
+          usedInputRate,
+          warning,
+          ear,
+          remainN,
+          balance: Math.max(0, balance),
+          totalDebt: PMT * remainN,
+          remainInterest: (PMT * remainN) - balance,
+          monthlyRate
+      };
+    },
+
+    saveToLocal() {
+        localStorage.setItem('myLoanList', JSON.stringify(this.state.loanList));
+    },
+
+    addLoan(data) {
+        this.state.loanList.push({
+            id: Date.now(),
+            ...data
+        });
+        this.saveToLocal();
+    },
+
+    removeLoan(id) {
+        this.state.loanList = this.state.loanList.filter(item => item.id !== id);
+        this.saveToLocal();
+    }
+  };
+
+  // --- View ---
+  const view = {
+    els: {
+        form: document.getElementById('loan-form'),
+        inputs: {
+            p: document.getElementById('p'),
+            pmt: document.getElementById('pmt'),
+            n: document.getElementById('n'),
+            repaid_n: document.getElementById('repaid_n'),
+            rate: document.getElementById('rate'),
+            bank: document.getElementById('bank_name'),
+            pay_date: document.getElementById('pay_date'),
+            type: document.getElementById('loan_type'),
+        },
+        btnAdd: document.getElementById('btn-add-list'),
+        btnNext: document.getElementById('btn-add-next'),
+        resultArea: document.getElementById('result-area'),
+        msgBox: document.getElementById('message-box'),
+        // Results
+        resEar: document.getElementById('res_ear'),
+        resRemainN: document.getElementById('res_remain_n'),
+        resBalance: document.getElementById('res_balance'),
+        resTotalDebt: document.getElementById('res_total_debt'),
+        resRemainInt: document.getElementById('res_remain_interest'),
+        // Table
+        summarySec: document.getElementById('finance-summary'),
+        tableBody: document.getElementById('loan-list-body'),
+        totalPmt: document.getElementById('total-pmt'),
+        totalBalance: document.getElementById('total-balance'),
+        btnCopy: document.getElementById('btn-copy-text'),
+        // Tabs
+        tabQuick: document.getElementById('tab-quick'),
+        tabSheet: document.getElementById('tab-sheet'),
+        sheetFields: document.getElementById('sheet-fields'),
+        themeToggle: document.getElementById('theme-toggle'),
+        // Voice
+        voiceBtn: document.getElementById('btn-voice-input'),
+    },
+
+    getInputs() {
+        const val = id => {
+            const el = this.els.inputs[id];
+            return el.value.trim() === '' ? null : (id === 'bank' || id === 'type' ? el.value : Number(el.value));
+        };
+        return {
+            P: val('p'), PMT: val('pmt'), N: val('n'), K: val('repaid_n'),
+            annualRate: val('rate'),
+            bankName: val('bank'), payDate: val('pay_date'), loanType: val('type')
+        };
+    },
+
+    renderResult(data) {
+        const money = n => new Intl.NumberFormat('zh-HK', { style: 'currency', currency: 'HKD', maximumFractionDigits:0 }).format(n);
+        const pct = n => (n*100).toFixed(2) + '%';
+
+        this.els.resEar.textContent = pct(data.ear);
+        this.els.resRemainN.textContent = data.remainN + ' 期';
+        this.els.resBalance.textContent = money(data.balance);
+        this.els.resTotalDebt.textContent = money(data.totalDebt);
+        this.els.resRemainInt.textContent = money(data.remainInterest);
+        
+        this.els.resultArea.style.display = 'block';
+    },
+
+    renderTable(list) {
+        if (list.length === 0) {
+            this.els.summarySec.style.display = 'none';
+            return;
+        }
+        this.els.summarySec.style.display = 'block';
+        
+        const money = n => new Intl.NumberFormat('zh-HK', { style: 'currency', currency: 'HKD', maximumFractionDigits:0 }).format(n);
+        const typeMap = { 'LOAN': 'badge-loan', 'CARD': 'badge-card', 'OD': 'badge-od' };
+        
+        this.els.tableBody.innerHTML = list.map(item => `
+            <tr>
+                <td>
+                    <div style="font-weight:600;">${item.bankName || '未命名'}</div>
+                    <div style="font-size:0.8rem; color:#64748b;">
+                        ${item.payDate ? `(${item.payDate}號)` : ''} 
+                        <span class="badge ${typeMap[item.loanType]}">${item.loanType}</span>
+                    </div>
+                </td>
+                <td>${money(item.PMT)}</td>
+                <td>${money(item.balance)}</td>
+                <td>${item.remainN}</td>
+                <td>${(item.ear*100).toFixed(1)}%</td>
+                <td>
+                    <button class="btn secondary" style="min-width:auto; padding:4px 8px; font-size:0.8rem;" 
+                            onclick="document.dispatchEvent(new CustomEvent('delete-loan', {detail:${item.id}}))">🗑️</button>
+                </td>
+            </tr>
+        `).join('');
+
+        // 總計
+        const sumPmt = list.reduce((acc, i) => acc + i.PMT, 0);
+        const sumBal = list.reduce((acc, i) => acc + i.balance, 0);
+        this.els.totalPmt.textContent = money(sumPmt);
+        this.els.totalBalance.textContent = money(sumBal);
+        
+        this.els.summarySec.scrollIntoView({ behavior: 'smooth' });
+    },
+
+    msg(type, text) {
+        this.els.msgBox.className = `message-box ${type}`;
+        this.els.msgBox.textContent = text;
+        this.els.msgBox.style.display = 'block';
+        setTimeout(() => { this.els.msgBox.style.display = 'none'; }, 3000);
+    }
+  };
+
+  // --- Controller ---
+  const controller = {
+    lastResult: null,
+    hasCalculatedOnce: false,
+
+    init() {
+        view.els.themeToggle.addEventListener('click', () => {
+             const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+             document.documentElement.setAttribute('data-theme', isDark ? 'light' : 'dark');
+        });
+        document.documentElement.setAttribute('data-theme', 'dark');
+        
+        // Tabs
+        view.els.tabQuick.addEventListener('click', () => this.switchMode('quick'));
+        view.els.tabSheet.addEventListener('click', () => this.switchMode('sheet'));
+
+        // Form Submit
+        view.els.form.addEventListener('submit', e => this.handleSubmit(e));
+        view.els.form.addEventListener('reset', () => {
+            view.els.resultArea.style.display = 'none';
+            view.els.btnAdd.disabled = true;
+            view.els.msgBox.style.display = 'none';
+            this.hasCalculatedOnce = false;
+        });
+
+        // Add List
+        view.els.btnAdd.addEventListener('click', () => this.addToList());
+        
+        // ✨ New: Save & Next (儲存並下一筆)
+        view.els.btnNext.addEventListener('click', () => this.addAndNext());
+
+        // Delete Event
+        document.addEventListener('delete-loan', e => {
+            model.removeLoan(e.detail);
+            view.renderTable(model.state.loanList);
+        });
+
+        // Copy Text
+        view.els.btnCopy.addEventListener('click', () => this.copyReport());
+
+        // Auto Calc
+        const autoCalcFields = ['p', 'pmt', 'n', 'repaid_n', 'rate'];
+        autoCalcFields.forEach(id => {
+            view.els.inputs[id].addEventListener('input', () => {
+                if (this.hasCalculatedOnce) {
+                    this.handleSubmit(null, true);
+                }
+            });
+        });
+
+        // ✨ Voice Feature Setup
+        this.setupVoice();
+
+        // ✨ 新增：載入時如果已經有資料，直接顯示表格
+        if (model.state.loanList.length > 0) {
+            view.renderTable(model.state.loanList);
+            this.switchMode('sheet');
+        }
+    },
+
+    setupVoice() {
+        // 1. 檢查瀏覽器支援
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            view.els.voiceBtn.style.display = 'none'; // 不支援就隱藏
+            return;
+        }
+
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'zh-HK';
+        recognition.continuous = true; // 改為 true，讓它能持續聽，直到我們按停止
+        recognition.interimResults = true; // 允許即時顯示正在說的內容
+
+        let isListening = false;
+        let finalTranscript = '';
+
+        // 按鈕點擊事件 (開關邏輯)
+        view.els.voiceBtn.addEventListener('click', () => {
+            if (isListening) {
+                // 🛑 如果正在聽，就停止
+                recognition.stop(); 
+            } else {
+                // ▶️ 如果沒在聽，就開始
+                finalTranscript = ''; // 清空上次紀錄
+                recognition.start();
+            }
+        });
+
+        // 開始聆聽時
+        recognition.onstart = () => {
+            isListening = true;
+            view.els.voiceBtn.textContent = '⏹️ 說完請按此停止...';
+            view.els.voiceBtn.style.backgroundColor = '#22c55e'; // 綠色
+            view.els.voiceBtn.classList.add('listening-pulse'); // 可以加個 CSS 動畫效果
+        };
+
+        // 結束聆聽時
+        recognition.onend = () => {
+            isListening = false;
+            view.els.voiceBtn.textContent = '🎙️ 語音輸入';
+            view.els.voiceBtn.style.backgroundColor = '#ef4444'; // 紅色
+            view.els.voiceBtn.classList.remove('listening-pulse');
+            
+            // 如果有內容，就開始分析
+            if (finalTranscript.trim().length > 0) {
+                view.msg('success', `收到：${finalTranscript}`);
+                this.parseVoiceCommand(finalTranscript);
+            }
+        };
+
+        // 收到結果時
+        recognition.onresult = (event) => {
+            let interimTranscript = '';
+            for (let i = event.resultIndex; i < event.results.length; ++i) {
+                if (event.results[i].isFinal) {
+                    finalTranscript += event.results[i][0].transcript;
+                } else {
+                    interimTranscript += event.results[i][0].transcript;
+                }
+            }
+            // 即時更新按鈕文字，讓使用者知道它有在聽
+            view.els.voiceBtn.textContent = `👂 ${interimTranscript || '聆聽中...'}`;
+        };
+
+        recognition.onerror = (event) => {
+            console.error(event.error);
+            isListening = false;
+            view.els.voiceBtn.textContent = '❌ 發生錯誤 (點擊重試)';
+            view.els.voiceBtn.style.backgroundColor = '#64748b'; // 灰色
+        };
+    },
+
+    parseVoiceCommand(text) {
+        console.log('原始語音:', text);
+
+        // 1. 預處理：將口語轉為標準格式，移除雜訊
+        let processed = text
+            .replace(/,/g, '') // 移除千分位逗號
+            .replace(/借左|借咗|貸款/g, '借')
+            .replace(/還緊|供款|供緊|要供|月供/g, '供')
+            .replace(/分左|分咗|分期|分/g, '分')
+            .replace(/二十/g, '20').replace(/三十/g, '30') // 簡單中文數字修正
+            .replace(/兩/g, '2').replace(/廿/g, '2')
+            .replace(/半/g, '.5');
+
+        // 2. 智能數值提取器 (處理 '3萬5', '2萬', '10000' 等格式)
+        const extractValue = (str) => {
+            // 移除所有非數字和小數點，但保留 '萬' 和 '千' 作為單位標記
+            // 邏輯：先找前面的數字
+            const match = str.match(/(\d+(\.\d+)?)\s*(萬|千)?\s*(\d+)?/);
+            if (!match) return null;
+            
+            let val = parseFloat(match[1]);
+            const unit = match[3];
+            const tail = match[4]; // 處理 '3萬5' 這種情況
+
+            if (unit === '萬') {
+                val *= 10000;
+                if (tail) val += parseFloat(tail) * 1000; // 3萬5 = 35000
+            } else if (unit === '千') {
+                val *= 1000;
+                if (tail) val += parseFloat(tail) * 100; // 3千5 = 3500
+            }
+            
+            return val;
+        };
+
+        // 3. 關鍵字上下文分析 (Contextual Parsing)
+        // 我們將句子根據關鍵字切分，而不是只抓數字
+        
+        let p = null, pmt = null, n = null;
+
+        // 策略 A: 嘗試用正則表達式抓取 '關鍵字 + 數字' 的組合
+        // 例如： '借 5萬' -> 借(Keyword) 50000(Value)
+        
+        // --- 抓取本金 (P) ---
+        // 關鍵字：借、本金
+        const pMatch = processed.match(/(?:借|本金)\D*([\d萬千\.]+)/);
+        if (pMatch) p = extractValue(pMatch[1]);
+
+        // --- 抓取月供 (PMT) ---
+        // 關鍵字：供
+        const pmtMatch = processed.match(/(?:供)\D*([\d萬千\.]+)/);
+        if (pmtMatch) pmt = extractValue(pmtMatch[1]);
+
+        // --- 抓取期數 (N) ---
+        // 關鍵字：分、期
+        const nMatch = processed.match(/(?:分)\D*(\d+)/) || processed.match(/(\d+)\s*(?:個月|期)/);
+        if (nMatch) n = parseInt(nMatch[1]);
+
+
+        // 4. 補救措施：如果策略 A 失敗 (使用者沒說關鍵字，只說了一堆數字)
+        // 使用舊的啟發式邏輯 (最大是本金，最小是期數)
+        if (!p || !pmt || !n) {
+            console.log('精準匹配失敗，啟用模糊推測...');
+            const numbers = processed.match(/(\d+(\.\d+)?)(萬|千)?/g);
+            
+            if (numbers && numbers.length >= 2) {
+                // 將所有找到的數字轉為數值
+                const values = numbers.map(s => extractValue(s)).sort((a,b) => b-a);
+                
+                if (!p) p = values[0]; // 最大的是本金
+                
+                // 剩下的數字裡，找一個合理的期數 (<120) 和月供
+                const remains = values.slice(1);
+                
+                if (!n) n = remains.find(x => x <= 120 && x % 1 === 0) || 12; // 找小於120的整數，預設12
+                if (!pmt) pmt = remains.find(x => x !== n);
+            }
+        }
+
+        console.log(`解析結果: P=${p}, PMT=${pmt}, N=${n}`);
+
+        // 5. 填入表單
+        if (p) view.els.inputs.p.value = p;
+        if (pmt) view.els.inputs.pmt.value = pmt;
+        if (n) view.els.inputs.n.value = n;
+        
+        // 嘗試抓取銀行名稱 (如果開頭是中文)
+        const bankMatch = text.match(/^[\u4e00-\u9fa5]+/);
+        if (bankMatch && !['借','供','分'].includes(bankMatch[0])) { 
+            view.els.inputs.bank.value = bankMatch[0]; 
+        }
+
+        // 6. 觸發計算
+        if (p && pmt && n) {
+            view.msg('success', '識別成功！正在計算...');
+            this.handleSubmit();
+        } else {
+            view.msg('warning', '聽不清楚，請檢查數值 (試著說：借5萬 分24期 供2500)');
+        }
+    },
+
+    switchMode(mode) {
+        if (mode === 'quick') {
+            view.els.tabQuick.classList.add('active');
+            view.els.tabSheet.classList.remove('active');
+            view.els.sheetFields.style.display = 'none';
+            view.els.btnNext.style.display = 'none'; // Quick mode hide next btn
+        } else {
+            view.els.tabSheet.classList.add('active');
+            view.els.tabQuick.classList.remove('active');
+            view.els.sheetFields.style.display = 'block';
+            view.els.btnNext.style.display = 'block';
+        }
+    },
+
+    handleSubmit(e, isAuto = false) {
+        if (e) e.preventDefault();
+        
+        const inputs = view.getInputs();
+        if (!inputs.P || !inputs.PMT || !inputs.N) return;
+
+        const res = model.calculate(inputs);
+        if (res.error) {
+            if (!isAuto) view.msg('error', res.error); 
+            return;
+        }
+
+        this.lastResult = { ...inputs, ...res };
+        view.renderResult(res);
+        
+        if (!isAuto) {
+            view.msg('success', '計算成功');
+            this.hasCalculatedOnce = true;
+        }
+        
+        view.els.btnAdd.disabled = false;
+    },
+
+    addToList() {
+        if (!this.lastResult) return;
+        model.addLoan(this.lastResult);
+        view.renderTable(model.state.loanList);
+        view.els.btnAdd.disabled = true;
+        view.els.form.reset();
+        view.els.resultArea.style.display = 'none';
+        view.msg('success', '已加入清單');
+        this.switchMode('sheet');
+    },
+
+    // ✨ New: Add & Next Logic
+    addAndNext() {
+        // 1. 強制計算 (避免使用者忘記按計算)
+        const inputs = view.getInputs();
+        if (!inputs.P || !inputs.PMT || !inputs.N) {
+             view.msg('error', '請填寫完整資料');
+             return;
+        }
+        const res = model.calculate(inputs);
+        if (res.error) {
+            view.msg('error', res.error);
+            return;
+        }
+
+        // 2. Add
+        const data = { ...inputs, ...res };
+        model.addLoan(data);
+        view.renderTable(model.state.loanList);
+
+        // 3. Clear partial fields (Keep pay_date, type)
+        view.els.inputs.bank.value = '';
+        view.els.inputs.p.value = '';
+        view.els.inputs.pmt.value = '';
+        view.els.inputs.n.value = '';
+        view.els.inputs.repaid_n.value = '0';
+        view.els.inputs.rate.value = '';
+        
+        // 4. Focus back to Bank Name
+        view.els.inputs.bank.focus();
+        
+        // 5. Reset states
+        view.els.resultArea.style.display = 'none';
+        view.els.btnAdd.disabled = true;
+        this.hasCalculatedOnce = false;
+        
+        view.msg('success', '已儲存！請輸入下一筆');
+    },
+
+    copyReport() {
+        const list = model.state.loanList;
+        if (list.length === 0) return;
+        
+        const money = n => new Intl.NumberFormat('zh-HK', { style: 'currency', currency: 'HKD', maximumFractionDigits:0 }).format(n);
+        
+        let text = "【財務狀況匯總】\n";
+        list.forEach((item, idx) => {
+            const dateStr = item.payDate ? `(${item.payDate}號)` : '';
+            const typeStr = item.loanType;
+            text += `${idx+1}. ${item.bankName || '銀行'} ${dateStr} [${typeStr}]\n`;
+            text += `   月供:${money(item.PMT)} | 結欠:${money(item.balance)} | ${item.remainN}期 | APR ${(item.ear*100).toFixed(2)}%\n`;
+        });
+        
+        const totalPmt = list.reduce((a, b) => a + b.PMT, 0);
+        const totalBal = list.reduce((a, b) => a + b.balance, 0);
+        
+        text += "--------------------\n";
+        text += `總月供: ${money(totalPmt)}\n`;
+        text += `總結欠: ${money(totalBal)}`;
+
+        navigator.clipboard.writeText(text).then(() => {
+            alert('報表已複製！可直接貼上 WhatsApp。');
+        });
+    }
+  };
+
+  controller.init();
+</script>
+</body>
+</html>
