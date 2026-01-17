@@ -411,8 +411,14 @@
           </div>
       </div>
       
-      <div class="action-buttons" style="margin-top: 20px;">
+      <div class="action-buttons" style="margin-top: 20px; display: flex; gap: 10px; flex-direction: column;">
+        <!-- 原本的複製按鈕 -->
         <button id="btn-copy-text" class="btn secondary" style="width: 100%;">📄 複製文字報表 (WhatsApp)</button>
+        
+        <!-- ✨ 新增：紅色清空重設按鈕 -->
+        <button id="btn-clear-all" class="btn secondary" style="width: 100%; color: var(--error-text); border-color: var(--error-border); background-color: var(--error-bg);">
+            🔄 重設/清空所有資料
+        </button>
       </div>
   </section>
 
@@ -603,14 +609,12 @@
         this.els.totalPmt.textContent = money(sumPmt);
         this.els.totalBalance.textContent = money(sumBal);
         
-        // 👇 加入這行：每次渲染表格後，嘗試更新 DSR
-        // (簡單粗暴的方法：手動觸發 income 的 input 事件來重算)
-        setTimeout(() => {
-            const event = new Event('input');
-            document.getElementById('monthly-income').dispatchEvent(event);
-        }, 0);
-        
         this.els.summarySec.scrollIntoView({ behavior: 'smooth' });
+
+        // 👇 加入這行：每當表格刷新 (新增/刪除貸款) 時，通知 controller 重算 DSR
+        if (controller && controller.updateDSR) {
+            controller.updateDSR();
+        }
     },
 
     msg(type, text) {
@@ -730,43 +734,86 @@
             }
         });
 
-        // --- DSR 計算 ---
+        // ✨ 1. DSR 監聽器 (修復自動計算問題)
         const elIncome = document.getElementById('monthly-income');
-        elIncome.addEventListener('input', () => this.updateDSR());
+        if (elIncome) {
+            // 當手指放開鍵盤、或數值改變時，立即計算
+            elIncome.addEventListener('input', () => this.updateDSR());
+            elIncome.addEventListener('change', () => this.updateDSR());
+        }
 
-        // 定義 updateDSR 方法
-        this.updateDSR = () => {
-            const income = parseFloat(document.getElementById('monthly-income').value);
-            const totalPmtText = document.getElementById('total-pmt').textContent;
-            // 把 "$12,345" 變回 12345
-            const totalPmt = parseFloat(totalPmtText.replace(/[$,]/g, '')) || 0;
-            
-            const elDsrVal = document.getElementById('dsr-value');
-            const elDsrBar = document.getElementById('dsr-bar');
+        // ✨ 2. 清空重設按鈕監聽器
+        const btnClear = document.getElementById('btn-clear-all');
+        if (btnClear) {
+            btnClear.addEventListener('click', () => {
+                if (confirm('確定要清空所有資料及報表嗎？此動作無法復原。')) {
+                    this.clearAllData();
+                }
+            });
+        }
 
-            if (!income || income <= 0) {
-                elDsrVal.textContent = '--%';
-                elDsrVal.style.color = 'var(--muted-text-color)';
-                elDsrBar.style.width = '0%';
-                return;
-            }
+        // 初始載入時順便算一次
+        if (model.state.loanList.length > 0) {
+            this.updateDSR();
+        }
+    },
 
-            const dsr = (totalPmt / income) * 100;
-            elDsrVal.textContent = dsr.toFixed(1) + '%';
-            elDsrBar.style.width = Math.min(dsr, 100) + '%';
+    // ✨ 修復版 DSR 計算函式
+    updateDSR() {
+        const elIncome = document.getElementById('monthly-income');
+        const elDsrVal = document.getElementById('dsr-value');
+        const elDsrBar = document.getElementById('dsr-bar');
+        
+        if (!elIncome || !elDsrVal) return;
 
-            // 顏色判定
-            if (dsr < 45) {
-                elDsrVal.style.color = '#15803d'; // Green
-                elDsrBar.style.backgroundColor = '#22c55e';
-            } else if (dsr < 65) {
-                elDsrVal.style.color = '#b45309'; // Orange Warning
-                elDsrBar.style.backgroundColor = '#f59e0b';
-            } else {
-                elDsrVal.style.color = '#b91c1c'; // Red Danger
-                elDsrBar.style.backgroundColor = '#ef4444';
-            }
-        };
+        const income = parseFloat(elIncome.value);
+        // 直接從 Model 拿總供款，比較準確
+        const totalPmt = model.state.loanList.reduce((acc, item) => acc + item.PMT, 0);
+
+        if (!income || income <= 0) {
+            // 如果沒填收入，顯示 --
+            elDsrVal.textContent = '--%';
+            elDsrVal.style.color = 'var(--muted-text-color)';
+            elDsrBar.style.width = '0%';
+            return;
+        }
+
+        const dsr = (totalPmt / income) * 100;
+        
+        // 更新文字與顏色
+        elDsrVal.textContent = dsr.toFixed(1) + '%';
+        elDsrBar.style.width = Math.min(dsr, 100) + '%';
+
+        if (dsr < 45) {
+            elDsrVal.style.color = '#15803d'; // Green
+            elDsrBar.style.backgroundColor = '#22c55e';
+        } else if (dsr < 65) {
+            elDsrVal.style.color = '#b45309'; // Orange
+            elDsrBar.style.backgroundColor = '#f59e0b';
+        } else {
+            elDsrVal.style.color = '#b91c1c'; // Red
+            elDsrBar.style.backgroundColor = '#ef4444';
+        }
+    },
+
+    // ✨ 新增：清空所有資料函式
+    clearAllData() {
+        // 1. 清空 Model
+        model.state.loanList = [];
+        model.saveToLocal();
+        
+        // 2. 清空介面
+        view.renderTable([]);
+        
+        // 3. 清空輸入欄位
+        document.getElementById('monthly-income').value = '';
+        this.updateDSR();
+        
+        // 4. 重置表單
+        view.els.form.reset();
+        view.els.resultArea.style.display = 'none';
+        
+        view.msg('success', '已重設所有資料');
     },
 
     setupVoice() {
