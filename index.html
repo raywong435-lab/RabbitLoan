@@ -264,7 +264,7 @@
                     <select id="loan_type" onchange="document.getElementById('min-pay-group').style.display = this.value === 'CARD' ? 'block' : 'none'">
                         <option value="LOAN">私人貸款 (Loan)</option>
                         <option value="CARD">信用卡 (Card)</option>
-                        <option value="OD">透支 (OD)</option>
+                        <option value="OD">循環貸款 (Revolving)</option>
                     </select>
                 </div>
 
@@ -391,6 +391,24 @@
                   </tr>
               </tfoot>
           </table>
+      </div>
+
+      <!-- ✨ 新增：DSR 計算區塊 -->
+      <div class="dsr-calculator" style="background-color: var(--bg-color); padding: 16px; border-radius: 8px; margin-top: 16px; border: 1px solid var(--border-color);">
+          <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+              <div style="flex: 1; min-width: 150px;">
+                  <label for="monthly-income" style="font-size: 0.85rem; font-weight: 600; color: var(--muted-text-color);">💰 客人每月總收入</label>
+                  <input type="number" id="monthly-income" placeholder="輸入月薪..." inputmode="numeric" style="padding: 8px; margin-top: 4px;">
+              </div>
+              <div style="flex: 1; text-align: right; min-width: 120px;">
+                  <div style="font-size: 0.85rem; color: var(--muted-text-color);">供款佔入息比率 (DSR)</div>
+                  <div id="dsr-value" style="font-size: 1.8rem; font-weight: 800; color: var(--muted-text-color);">--%</div>
+              </div>
+          </div>
+          <!-- 進度條視覺化 -->
+          <div style="height: 8px; background: #e2e8f0; border-radius: 4px; margin-top: 8px; overflow: hidden;">
+              <div id="dsr-bar" style="height: 100%; width: 0%; background: #22c55e; transition: width 0.3s, background-color 0.3s;"></div>
+          </div>
       </div>
       
       <div class="action-buttons" style="margin-top: 20px;">
@@ -552,13 +570,20 @@
         const money = n => new Intl.NumberFormat('zh-HK', { style: 'currency', currency: 'HKD', maximumFractionDigits:0 }).format(n);
         const typeMap = { 'LOAN': 'badge-loan', 'CARD': 'badge-card', 'OD': 'badge-od' };
         
+        const getTypeName = (type) => {
+            if (type === 'LOAN') return '私人貸款';
+            if (type === 'CARD') return '信用卡';
+            if (type === 'OD') return '循環貸款';
+            return type;
+        };
+        
         this.els.tableBody.innerHTML = list.map(item => `
             <tr>
                 <td>
                     <div style="font-weight:600;">${item.bankName || '未命名'}</div>
                     <div style="font-size:0.8rem; color:#64748b;">
                         ${item.payDate ? `(${item.payDate}號)` : ''} 
-                        <span class="badge ${typeMap[item.loanType]}">${item.loanType}</span>
+                        <span class="badge ${typeMap[item.loanType]}">${getTypeName(item.loanType)}</span>
                     </div>
                 </td>
                 <td>${money(item.PMT)}</td>
@@ -577,6 +602,13 @@
         const sumBal = list.reduce((acc, i) => acc + i.balance, 0);
         this.els.totalPmt.textContent = money(sumPmt);
         this.els.totalBalance.textContent = money(sumBal);
+        
+        // 👇 加入這行：每次渲染表格後，嘗試更新 DSR
+        // (簡單粗暴的方法：手動觸發 income 的 input 事件來重算)
+        setTimeout(() => {
+            const event = new Event('input');
+            document.getElementById('monthly-income').dispatchEvent(event);
+        }, 0);
         
         this.els.summarySec.scrollIntoView({ behavior: 'smooth' });
     },
@@ -697,6 +729,44 @@
                 view.els.inputs.p.dispatchEvent(new Event('input'));
             }
         });
+
+        // --- DSR 計算 ---
+        const elIncome = document.getElementById('monthly-income');
+        elIncome.addEventListener('input', () => this.updateDSR());
+
+        // 定義 updateDSR 方法
+        this.updateDSR = () => {
+            const income = parseFloat(document.getElementById('monthly-income').value);
+            const totalPmtText = document.getElementById('total-pmt').textContent;
+            // 把 "$12,345" 變回 12345
+            const totalPmt = parseFloat(totalPmtText.replace(/[$,]/g, '')) || 0;
+            
+            const elDsrVal = document.getElementById('dsr-value');
+            const elDsrBar = document.getElementById('dsr-bar');
+
+            if (!income || income <= 0) {
+                elDsrVal.textContent = '--%';
+                elDsrVal.style.color = 'var(--muted-text-color)';
+                elDsrBar.style.width = '0%';
+                return;
+            }
+
+            const dsr = (totalPmt / income) * 100;
+            elDsrVal.textContent = dsr.toFixed(1) + '%';
+            elDsrBar.style.width = Math.min(dsr, 100) + '%';
+
+            // 顏色判定
+            if (dsr < 45) {
+                elDsrVal.style.color = '#15803d'; // Green
+                elDsrBar.style.backgroundColor = '#22c55e';
+            } else if (dsr < 65) {
+                elDsrVal.style.color = '#b45309'; // Orange Warning
+                elDsrBar.style.backgroundColor = '#f59e0b';
+            } else {
+                elDsrVal.style.color = '#b91c1c'; // Red Danger
+                elDsrBar.style.backgroundColor = '#ef4444';
+            }
+        };
     },
 
     setupVoice() {
